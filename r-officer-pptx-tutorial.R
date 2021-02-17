@@ -57,6 +57,7 @@ for( i in seq_along(country_list)) {
 # Read in the blank pptx
 template_pptx <- read_pptx("template.pptx")
 
+# Copy blank pptx to gdp_growth_pptx (which will be our final pptx)
 gdp_growth_pptx <- template_pptx
 
 # Loop to add slides 
@@ -97,19 +98,20 @@ country_graph <- function(x) {
           axis.text.x = element_text(angle = 90))
 }
 
-### Use map to make graphs 
+# Use map to make graphs 
 country_graphs_list <- country_list %>% 
   purrr::set_names() %>% 
   purrr::map(country_graph)
 
 
-### pptx loop
-template_pptx <- read_pptx("template.pptx")
+# Copy blank pptx to gdp_growth_pptx (which will be our final pptx)
+gdp_growth_pptx <- template_pptx
 
+# Loop to add slides 
 for (i in seq(country_graphs_list)){
-  gdp_growth_pptx <- add_slide(template_pptx, 
-                              layout = "Graph",
-                              master = "Retrospect") %>%
+  add_slide(gdp_growth_pptx,
+            layout = "Graph",
+            master = "Retrospect") %>%
     ph_with(value = country_graphs_list[[i]],
             location = ph_location_type(type = "body"))}
 
