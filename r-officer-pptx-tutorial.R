@@ -12,33 +12,13 @@ gdp_pct_growth_df <- wbstats::wb_data(country = "countries_only",
                                       return_wide = FALSE) %>% 
   mutate(gdp_pct_growth = value/100)
 
-# Create a df with only data for France
-df <- filter(gdp_pct_growth_df, country == "France")
-
-# Create a simple line chart showing trends from 2009-2019
-# geom_hline marks 0% growth for reading ease
-# axis.title.x= element_blank() removes the x-axis (Year) title label
-# axis.text.x = angle = 90 rotates the axis x text
-
-ggplot(df, aes(x=date, y=gdp_pct_growth)) +
-  geom_line(size = 1)+ 
-  geom_point(size = 3) + 
-  geom_hline(yintercept=0, linetype="dashed",  color = "red", size=1)  +
-  scale_x_continuous("Year", breaks = seq(2009,2019, 1), limits = c(2009, 2019))+ 
-  scale_y_continuous("GDP per capita growth (annual %)", labels = scales::percent)+
-  labs(title = "GDP per capita growth (annual %)",
-       subtitle = "France, 2009-2019",
-       caption = "Source: World Bank Open Data")+
-  theme_minimal()+ 
-  theme(axis.title.x= element_blank(),
-        axis.text.x = element_text(angle = 90))
-
 
 # Make a list of all unique countries
 country_list <- unique(gdp_pct_growth_df$country)
 
 file_path_list <- list()
 
+# loop to create graphs 
 for( i in seq_along(country_list)) {
   
   # For each iteration, create a df for only that country
@@ -74,34 +54,36 @@ for( i in seq_along(country_list)) {
   
 }
                 
-# Put it in the pptx
 # Read in the blank pptx
-blank_ppt <- read_pptx("template.pptx")
+template_pptx <- read_pptx("template.pptx")
 
+gdp_growth_pptx <- template_pptx
 
 # Loop to add slides 
+for (i in seq(file_path_list)){
+  
+plot_png <-  external_img(file_path_list[[i]])
 
-for (u in seq(file_path_list)){
-  gdp_growth_ppt <- add_slide(blank_ppt, 
-                              layout = "Graph",
-                              master = "Office Theme") %>%
-    ph_with(value = external_img(file_path_list[[u]]),
-            location = ph_location_type(type = "body"))}
+add_slide(gdp_growth_pptx,
+          layout = "Graph",
+          master = "Retrospect") %>%
+  ph_with(value = plot_png, 
+          location = ph_location_label(ph_label = "Content Placeholder 2"))}
 
-gdp_growth_ppt %>% 
-  print(target = "gdp_per_capita_%_growth_slide_deck.pptx") 
+# Export
+print(gdp_growth_pptx, target = "gdp_per_capita_%_growth_slide_deck.pptx") 
 
 
-# Using lapply
+# Using map
 # Create a function to make the graph 
 
 country_graph <- function(x) {
   
-  ### X argument is country name
+  # X argument is country name
   
   df <- filter(gdp_pct_growth_df, country == x)
   
-plot <- ggplot(df, aes(x=date, y=gdp_pct_growth)) +
+  ggplot(df, aes(x=date, y=gdp_pct_growth)) +
     geom_line(size = 1)+ 
     geom_point(size = 3) + 
     geom_hline(yintercept=0, linetype="dashed",  color = "red", size=1)  +
@@ -113,37 +95,25 @@ plot <- ggplot(df, aes(x=date, y=gdp_pct_growth)) +
     theme_minimal()+ 
     theme(axis.title.x= element_blank(),
           axis.text.x = element_text(angle = 90))
-
-### Store file path
-### str_replace_all replaces countries names so that it is alpha numeric to avoid invalid file path issues. 
-
-plot_file_path <- paste0(getwd(),"/graphs_function/", str_replace_all(x, "[^[:alnum:]]","_"), ".png")
-
-### Append filepath to list for each iteration
-ggsave(filename= plot_file_path, plot=plot, width = 7, height = 5, units = "in", scale = 1, dpi = 300)
-
-plot_file_path
-
 }
 
-### Use map to make and save graphs than make a list of file paths 
+### Use map to make graphs 
 country_graphs_list <- country_list %>% 
   purrr::set_names() %>% 
   purrr::map(country_graph)
 
 
 ### pptx loop
-blank_ppt <- read_pptx("template.pptx")
+template_pptx <- read_pptx("template.pptx")
 
-for (u in seq(country_graphs_list)){
-  gdp_growth_ppt <- add_slide(blank_ppt, 
+for (i in seq(country_graphs_list)){
+  gdp_growth_pptx <- add_slide(template_pptx, 
                               layout = "Graph",
                               master = "Retrospect") %>%
-    ph_with(value = external_img(country_graphs_list[[u]]),
+    ph_with(value = country_graphs_list[[i]],
             location = ph_location_type(type = "body"))}
 
-gdp_growth_ppt %>% 
-  print(target = "gdp_per_capita_%_growth_slide_deck.pptx") 
+print(gdp_growth_pptx, target = "gdp_per_capita_%_growth_slide_deck_map.pptx") 
 
 
 
